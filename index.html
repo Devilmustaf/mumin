@@ -9,7 +9,6 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4338ca">
     
-    <!-- إعدادات خاصة بهواتف iPhone / iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="دفتر الديون">
@@ -22,8 +21,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts Cairo -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- html2pdf.js for PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- html2canvas for High Quality JPG Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
         body { font-family: 'Cairo', sans-serif; }
@@ -42,22 +41,28 @@
 
     <!-- الهيدر الرئيسي -->
     <header class="bg-indigo-700 text-white shadow-lg">
-        <div class="max-w-5xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="max-w-5xl mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
                 <img src="logo.png" alt="Logo" class="w-12 h-12 rounded-xl shadow-md border-2 border-yellow-400 object-cover bg-black">
                 <div>
-                    <h1 class="text-2xl font-extrabold tracking-wide">دفتر الديون الرقمي</h1>
-                    <p class="text-xs text-indigo-200">إدارة الديون والحسابات بالدينار العراقي (IQD)</p>
+                    <h1 class="text-2xl font-extrabold tracking-wide" id="headerStoreTitle">دفتر الديون الرقمي</h1>
+                    <p class="text-xs text-indigo-200" id="headerStoreSub">إدارة الديون والحسابات بالدينار العراقي (IQD)</p>
                 </div>
             </div>
 
-            <!-- أزرار النسخ الاحتياطي -->
+            <!-- أزرار التنقل والنسخ الاحتياطي -->
             <div class="flex items-center gap-2 flex-wrap text-sm">
+                <button onclick="switchTab('mainTab')" id="btnMainTab" class="bg-indigo-900 text-white px-3 py-2 rounded-xl border border-indigo-400 transition flex items-center gap-1 shadow-sm font-bold">
+                    <i class="fa-solid fa-house"></i> الرئيسية
+                </button>
+                <button onclick="switchTab('settingsTab')" id="btnSettingsTab" class="bg-indigo-600 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl border border-indigo-500 transition flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-gear"></i> إعدادات الواجهة
+                </button>
                 <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl border border-indigo-500 transition flex items-center gap-1 shadow-sm">
-                    <i class="fa-solid fa-download"></i> تصدير نسخ احتياطي
+                    <i class="fa-solid fa-download"></i> تصدير
                 </button>
                 <label class="bg-indigo-600 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl border border-indigo-500 transition flex items-center gap-1 cursor-pointer shadow-sm">
-                    <i class="fa-solid fa-upload"></i> استعادة نسخة
+                    <i class="fa-solid fa-upload"></i> استعادة
                     <input type="file" id="importFile" class="hidden" accept=".json" onchange="importBackup(event)">
                 </label>
             </div>
@@ -67,190 +72,230 @@
     <!-- المحتوى الرئيسي -->
     <main class="max-w-5xl mx-auto px-4 mt-6 space-y-6">
 
-        <!-- بطاقات الإحصائيات -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-r-4 border-r-red-500 flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 font-semibold mb-1">إجمالي ما يطلب للزبائن (ديون)</p>
-                    <h3 id="statTotalDebt" class="text-xl font-extrabold text-red-600">0 د.ع</h3>
+        <!-- ===== الصفحة الأولى: الواجهة الرئيسية ===== -->
+        <div id="mainTab" class="space-y-6">
+
+            <!-- بطاقات الإحصائيات -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-r-4 border-r-red-500 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold mb-1">إجمالي ما يطلب للزبائن (ديون)</p>
+                        <h3 id="statTotalDebt" class="text-xl font-extrabold text-red-600">0 د.ع</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-arrow-up-right-dots"></i>
+                    </div>
                 </div>
-                <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-arrow-up-right-dots"></i>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-r-4 border-r-emerald-500 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold mb-1">إجمالي المقبوضات (المسدد)</p>
+                        <h3 id="statTotalPaid" class="text-xl font-extrabold text-emerald-600">0 د.ع</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-arrow-down-left-dots"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-r-4 border-r-indigo-500 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold mb-1">عدد الزبائن المسجلين</p>
+                        <h3 id="statCustomerCount" class="text-xl font-extrabold text-indigo-700">0</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-r-4 border-r-emerald-500 flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 font-semibold mb-1">إجمالي المقبوضات (المسدد)</p>
-                    <h3 id="statTotalPaid" class="text-xl font-extrabold text-emerald-600">0 د.ع</h3>
+            <!-- الأقسام الرئيسية -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- إضافة زبون -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-indigo-600"></i> إضافة زبون جديد
+                    </h2>
+                    <form id="customerForm" onsubmit="addCustomer(event)" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">اسم الزبون الكامل *</label>
+                            <input type="text" id="custName" required placeholder="مثال: أحمد العراقي" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">رقم الهاتف (اختياري)</label>
+                            <input type="tel" id="custPhone" placeholder="07xxxxxxxxx" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition text-sm shadow-sm">
+                            <i class="fa-solid fa-plus"></i> حفظ الزبون
+                        </button>
+                    </form>
                 </div>
-                <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-arrow-down-left-dots"></i>
+
+                <!-- تسجيل دين / تسديد -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-file-circle-plus text-indigo-600"></i> تسجيل دين أو تسديد
+                    </h2>
+                    <form id="debtForm" onsubmit="addTransaction(event)" class="space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <!-- البحث الذكي لاختيار الزبون -->
+                            <div class="relative">
+                                <label class="block text-xs font-semibold mb-1">اختر الزبون (بحث ذكي) *</label>
+                                <input type="hidden" id="selectedCustomerId" required>
+                                <input type="text" id="customerSearchInput" oninput="filterCustomerDropdown()" onfocus="showCustomerDropdown()" placeholder="ابحث باسم الزبون..." class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                                <div id="customerDropdown" class="absolute z-30 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto hidden mt-1"></div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold mb-1">نوع المعاملة *</label>
+                                <select id="transType" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                                    <option value="debt">دين جديد (عليه)</option>
+                                    <option value="payment">تسديد (له)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold mb-1">المبلغ (بالدينار العراقي) *</label>
+                                <input type="number" id="debtAmount" min="1" step="any" required placeholder="أدخل أي مبلغ..." class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold mb-1">طريقة السداد / الدفع</label>
+                                <select id="paymentMethod" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                                    <option value="نقداً">نقداً (كاش)</option>
+                                    <option value="زين كاش">زين كاش (ZainCash)</option>
+                                    <option value="ماستركارد / كي كارت">ماستركارد / كي كارت</option>
+                                    <option value="حوالة">حوالة مصرفية</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold mb-1">تاريخ المعاملة</label>
+                                <input type="date" id="transDate" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold mb-1">موعد التذكير بالسداد</label>
+                                <input type="date" id="dueDate" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">ملاحظات / تفاصيل الدين</label>
+                            <input type="text" id="debtNotes" placeholder="مثال: شراء قائمة مواد بناء / بضاعة" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm shadow-sm">
+                            <i class="fa-solid fa-floppy-disk"></i> تسجيل المعاملة
+                        </button>
+                    </form>
                 </div>
+
             </div>
 
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-r-4 border-r-indigo-500 flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 font-semibold mb-1">عدد الزبائن المسجلين</p>
-                    <h3 id="statCustomerCount" class="text-xl font-extrabold text-indigo-700">0</h3>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-users"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- الأقسام الرئيسية -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            <!-- إضافة زبون -->
+            <!-- قائمة الزبائن وكشوفات الحساب -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                <h2 class="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-user-plus text-indigo-600"></i> إضافة زبون جديد
-                </h2>
-                <form id="customerForm" onsubmit="addCustomer(event)" class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-semibold mb-1">اسم الزبون الكامل *</label>
-                        <input type="text" id="custName" required placeholder="مثال: أحمد العراقي" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1">رقم الهاتف (اختياري)</label>
-                        <input type="tel" id="custPhone" placeholder="07xxxxxxxxx" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                    </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition text-sm shadow-sm">
-                        <i class="fa-solid fa-plus"></i> حفظ الزبون
-                    </button>
-                </form>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-3">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-address-book text-indigo-600"></i> قائمة الزبائن وكشوفات الحساب
+                    </h2>
+                    <input type="text" id="searchCustomer" oninput="renderCustomers()" placeholder="بحث باسم الزبون..." class="px-3 py-1.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64">
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-slate-50 text-slate-600 font-bold border-b">
+                            <tr>
+                                <th class="p-3">اسم الزبون</th>
+                                <th class="p-3">الهاتف</th>
+                                <th class="p-3">المتبقي عليه (الرصيد)</th>
+                                <th class="p-3 text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- تسجيل دين / تسديد -->
+            <!-- سجل المعاملات الأخيرة -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                <h2 class="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-file-circle-plus text-indigo-600"></i> تسجيل دين أو تسديد
+                <h2 class="text-lg font-bold text-slate-800 border-b pb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> سجل المعاملات الأخيرة
                 </h2>
-                <form id="debtForm" onsubmit="addTransaction(event)" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <!-- البحث الذكي لاختيار الزبون -->
-                        <div class="relative">
-                            <label class="block text-xs font-semibold mb-1">اختر الزبون (بحث ذكي) *</label>
-                            <input type="hidden" id="selectedCustomerId" required>
-                            <input type="text" id="customerSearchInput" oninput="filterCustomerDropdown()" onfocus="showCustomerDropdown()" placeholder="ابحث باسم الزبون..." class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                            <div id="customerDropdown" class="absolute z-30 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto hidden mt-1"></div>
-                        </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">نوع المعاملة *</label>
-                            <select id="transType" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                                <option value="debt">دين جديد (عليه)</option>
-                                <option value="payment">تسديد (له)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">المبلغ (بالدينار العراقي) *</label>
-                            <!-- قبول أي رقم إيجابي بدون تحديد أدنى أو خطوات -->
-                            <input type="number" id="debtAmount" min="1" step="any" required placeholder="أدخل أي مبلغ..." class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">طريقة السداد / الدفع</label>
-                            <select id="paymentMethod" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                                <option value="نقداً">نقداً (كاش)</option>
-                                <option value="زين كاش">زين كاش (ZainCash)</option>
-                                <option value="ماستركارد / كي كارت">ماستركارد / كي كارت</option>
-                                <option value="حوالة">حوالة مصرفية</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">تاريخ المعاملة</label>
-                            <input type="date" id="transDate" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">موعد التذكير بالسداد</label>
-                            <input type="date" id="dueDate" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold mb-1">ملاحظات / تفاصيل الدين</label>
-                        <input type="text" id="debtNotes" placeholder="مثال: شراء قائمة مواد بناء / بضاعة" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                    </div>
-
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm shadow-sm">
-                        <i class="fa-solid fa-floppy-disk"></i> تسجيل المعاملة
-                    </button>
-                </form>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-slate-50 text-slate-600 font-bold border-b">
+                            <tr>
+                                <th class="p-3">التاريخ</th>
+                                <th class="p-3">الزبون</th>
+                                <th class="p-3">النوع</th>
+                                <th class="p-3">المبلغ</th>
+                                <th class="p-3">طريقة السداد</th>
+                                <th class="p-3">تاريخ التذكير</th>
+                                <th class="p-3 text-center">صورة الوصل</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
             </div>
 
         </div>
 
-        <!-- قائمة الزبائن وكشوفات الحساب -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-3">
-                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-address-book text-indigo-600"></i> قائمة الزبائن وكشوفات الحساب
+        <!-- ===== الصفحة الثانية: إعدادات الواجهة والمحل ===== -->
+        <div id="settingsTab" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+            <div class="border-b pb-3">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-600"></i> إعدادات الواجهة والمحل
                 </h2>
-                <input type="text" id="searchCustomer" oninput="renderCustomers()" placeholder="بحث باسم الزبون..." class="px-3 py-1.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64">
+                <p class="text-xs text-slate-500 mt-1">قم بإدخال معلومات صاحب الصفحة / المتجر لتظهر تلقائياً في أعلى وأسفل وصولات السداد وكشوفات الحساب.</p>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-right text-sm">
-                    <thead class="bg-slate-50 text-slate-600 font-bold border-b">
-                        <tr>
-                            <th class="p-3">اسم الزبون</th>
-                            <th class="p-3">الهاتف</th>
-                            <th class="p-3">المتبقي عليه (الرصيد)</th>
-                            <th class="p-3 text-center">إجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody id="customersTableBody" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
-        </div>
+            <form id="storeSettingsForm" onsubmit="saveStoreSettings(event)" class="space-y-4 max-w-xl">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">اسم المحل / صاحب العمل *</label>
+                    <input type="text" id="settingStoreName" required placeholder="مثال: أسواق السلام / المكتب الهندسي" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
 
-        <!-- سجل المعاملات الأخيرة -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-            <h2 class="text-lg font-bold text-slate-800 border-b pb-3 flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> سجل المعاملات الأخيرة
-            </h2>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">رقم الهاتف للاتصال / الواتساب</label>
+                    <input type="tel" id="settingStorePhone" placeholder="مثال: 07700000000" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-right text-sm">
-                    <thead class="bg-slate-50 text-slate-600 font-bold border-b">
-                        <tr>
-                            <th class="p-3">التاريخ</th>
-                            <th class="p-3">الزبون</th>
-                            <th class="p-3">النوع</th>
-                            <th class="p-3">المبلغ</th>
-                            <th class="p-3">طريقة السداد</th>
-                            <th class="p-3">تاريخ التذكير</th>
-                            <th class="p-3 text-center">وصل PDF</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactionsTableBody" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">العنوان / الموقع</label>
+                    <input type="text" id="settingStoreAddress" placeholder="مثال: بغداد - شارع فلسطين" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold mb-1">ملاحظة ختامية بالوصل (أسفل السند)</label>
+                    <input type="text" id="settingStoreFooter" placeholder="مثال: شكراً لتكونكم زبوننا الدائم / البضاعة المباعة لا ترد" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl transition text-sm shadow-sm flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات
+                </button>
+            </form>
         </div>
 
     </main>
 
-    <!-- Modal كشف الحساب / الوصل -->
+    <!-- Modal المعاينة وتنزيل الصورة JPG -->
     <div id="modalOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             <div class="p-4 bg-indigo-700 text-white flex justify-between items-center">
                 <h3 class="font-bold text-lg" id="modalTitle">معاينة المستند</h3>
                 <button onclick="closeModal()" class="text-indigo-200 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <div id="modalContent" class="p-6 overflow-y-auto space-y-4 bg-slate-100 text-slate-800 flex justify-center"></div>
+            <div id="modalContent" class="p-4 overflow-y-auto space-y-4 bg-slate-100 text-slate-800 flex justify-center"></div>
 
             <div class="p-4 bg-slate-50 border-t flex justify-end gap-2">
-                <button onclick="downloadPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-file-pdf"></i> تنزيل PDF
+                <button onclick="downloadJPG()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md">
+                    <i class="fa-solid fa-file-image"></i> تنزيل صورة عالي الدقة (JPG)
                 </button>
                 <button onclick="closeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold">إغلاق</button>
             </div>
@@ -261,7 +306,12 @@
     <script>
         let customers = JSON.parse(localStorage.getItem('iqd_customers')) || [];
         let transactions = JSON.parse(localStorage.getItem('iqd_transactions')) || [];
-        let currentDocumentHTML = ""; // تخزين هتميل السند للطباعة
+        let storeSettings = JSON.parse(localStorage.getItem('iqd_store_settings')) || {
+            name: 'دفتر الديون الرقمي',
+            phone: '',
+            address: '',
+            footerNote: 'شكراً لتعاملكم معنا'
+        };
 
         document.getElementById('transDate').valueAsDate = new Date();
 
@@ -273,6 +323,47 @@
 
         function formatIQD(amount) {
             return new Intl.NumberFormat('ar-IQ').format(amount) + ' د.ع';
+        }
+
+        // --- التنقل بين التبويبات ---
+        function switchTab(tabId) {
+            document.getElementById('mainTab').classList.add('hidden');
+            document.getElementById('settingsTab').classList.add('hidden');
+
+            document.getElementById(tabId).classList.remove('hidden');
+
+            if (tabId === 'mainTab') {
+                document.getElementById('btnMainTab').className = "bg-indigo-900 text-white px-3 py-2 rounded-xl border border-indigo-400 transition flex items-center gap-1 shadow-sm font-bold";
+                document.getElementById('btnSettingsTab').className = "bg-indigo-600 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl border border-indigo-500 transition flex items-center gap-1 shadow-sm";
+            } else {
+                document.getElementById('btnSettingsTab').className = "bg-indigo-900 text-white px-3 py-2 rounded-xl border border-indigo-400 transition flex items-center gap-1 shadow-sm font-bold";
+                document.getElementById('btnMainTab').className = "bg-indigo-600 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl border border-indigo-500 transition flex items-center gap-1 shadow-sm";
+            }
+        }
+
+        // --- حفظ إعدادات المتجر ---
+        function saveStoreSettings(e) {
+            e.preventDefault();
+            storeSettings = {
+                name: document.getElementById('settingStoreName').value.trim(),
+                phone: document.getElementById('settingStorePhone').value.trim(),
+                address: document.getElementById('settingStoreAddress').value.trim(),
+                footerNote: document.getElementById('settingStoreFooter').value.trim()
+            };
+            localStorage.setItem('iqd_store_settings', JSON.stringify(storeSettings));
+            applyStoreSettings();
+            alert('تم حفظ إعدادات المحل بنجاح!');
+            switchTab('mainTab');
+        }
+
+        function applyStoreSettings() {
+            if (storeSettings.name) {
+                document.getElementById('headerStoreTitle').innerText = storeSettings.name;
+                document.getElementById('settingStoreName').value = storeSettings.name;
+            }
+            if (storeSettings.phone) document.getElementById('settingStorePhone').value = storeSettings.phone;
+            if (storeSettings.address) document.getElementById('settingStoreAddress').value = storeSettings.address;
+            if (storeSettings.footerNote) document.getElementById('settingStoreFooter').value = storeSettings.footerNote;
         }
 
         // --- نظام البحث الذكي للزبائن ---
@@ -460,7 +551,7 @@
                         <td class="p-3 text-xs text-amber-600 font-semibold">${t.dueDate ? t.dueDate : '-'}</td>
                         <td class="p-3 text-center">
                             <button onclick="showReceipt('${t.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg text-xs">
-                                <i class="fa-solid fa-print"></i> وصل
+                                <i class="fa-solid fa-image"></i> صورة
                             </button>
                         </td>
                     </tr>
@@ -476,7 +567,7 @@
             }
         }
 
-        // --- عرض كشف الحساب والوصل مع التنسيق المحاذي للمنتصف ---
+        // --- عرض كشف الحساب والوصل بتصميم أنيق ---
         function showStatement(custId) {
             const cust = customers.find(c => c.id === custId);
             if (!cust) return;
@@ -487,15 +578,16 @@
             document.getElementById('modalTitle').innerText = 'كشف حساب التفصيلي';
             
             let html = `
-                <div style="width: 480px; background: #ffffff; padding: 25px; border-radius: 12px; border: 1px solid #cbd5e1; font-family: 'Cairo', sans-serif; direction: rtl; box-sizing: border-box;">
+                <div id="exportTarget" style="width: 440px; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #cbd5e1; font-family: 'Cairo', sans-serif; direction: rtl; box-sizing: border-box;">
                     
-                    <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 10px; margin-bottom: 15px;">
-                        <img src="logo.png" style="width: 55px; height: 55px; margin: 0 auto 6px auto; display: block;">
-                        <h2 style="font-size: 18px; font-weight: 800; color: #3730a3; margin: 0;">كشف حساب زبون</h2>
+                    <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 10px; margin-bottom: 14px;">
+                        <img src="logo.png" style="width: 50px; height: 50px; margin: 0 auto 6px auto; display: block;">
+                        <h2 style="font-size: 18px; font-weight: 800; color: #3730a3; margin: 0;">${storeSettings.name || 'دفتر الديون'}</h2>
+                        ${storeSettings.phone || storeSettings.address ? `<p style="font-size: 11px; color: #475569; margin: 2px 0;">${storeSettings.phone} ${storeSettings.address ? ' | ' + storeSettings.address : ''}</p>` : ''}
                         <p style="font-size: 10px; color: #64748b; margin-top: 2px;">تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</p>
                     </div>
 
-                    <div style="display: table; width: 100%; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+                    <div style="display: table; width: 100%; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #e2e8f0;">
                         <div style="display: table-cell; vertical-align: middle; text-align: right;">
                             <p style="margin: 2px 0; font-size: 12px;"><strong>اسم الزبون:</strong> ${cust.name}</p>
                             <p style="margin: 2px 0; font-size: 12px;"><strong>رقم الهاتف:</strong> ${cust.phone}</p>
@@ -506,7 +598,7 @@
                         </div>
                     </div>
 
-                    <table style="width: 100%; border-collapse: collapse; text-align: right; margin-bottom: 15px; font-size: 11px;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: right; margin-bottom: 14px; font-size: 11px;">
                         <thead>
                             <tr style="background: #e0e7ff; color: #3730a3;">
                                 <th style="padding: 6px; border: 1px solid #c7d2fe;">التاريخ</th>
@@ -538,10 +630,11 @@
                         <div style="display: table-cell; text-align: right;"><strong>مجموع الديون:</strong> ${formatIQD(debtSum)}</div>
                         <div style="display: table-cell; text-align: left;"><strong>مجموع التسديدات:</strong> ${formatIQD(paidSum)}</div>
                     </div>
+
+                    ${storeSettings.footerNote ? `<div style="text-align: center; margin-top: 12px; font-size: 10px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 6px;">${storeSettings.footerNote}</div>` : ''}
                 </div>
             `;
 
-            currentDocumentHTML = html;
             document.getElementById('modalContent').innerHTML = html;
             document.getElementById('modalOverlay').classList.remove('hidden');
         }
@@ -555,19 +648,18 @@
             const isDebt = t.type === 'debt';
 
             const html = `
-                <div style="width: 420px; background: #ffffff; padding: 22px; border-radius: 12px; border: 2px solid #3730a3; font-family: 'Cairo', sans-serif; direction: rtl; box-sizing: border-box;">
+                <div id="exportTarget" style="width: 400px; background: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #3730a3; font-family: 'Cairo', sans-serif; direction: rtl; box-sizing: border-box;">
                     
-                    <div style="text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 10px; margin-bottom: 14px;">
-                        <img src="logo.png" style="width: 50px; height: 50px; margin: 0 auto 6px auto; display: block;">
-                        <h2 style="font-size: 16px; font-weight: 800; color: #3730a3; margin: 0;">
+                    <div style="text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 10px; margin-bottom: 12px;">
+                        <img src="logo.png" style="width: 48px; height: 48px; margin: 0 auto 4px auto; display: block;">
+                        <h2 style="font-size: 16px; font-weight: 800; color: #3730a3; margin: 0;">${storeSettings.name || 'دفتر الديون'}</h2>
+                        ${storeSettings.phone || storeSettings.address ? `<p style="font-size: 10px; color: #475569; margin: 2px 0;">${storeSettings.phone} ${storeSettings.address ? ' | ' + storeSettings.address : ''}</p>` : ''}
+                        <div style="display: inline-block; background-color: ${isDebt ? '#fef2f2' : '#f0fdf4'}; color: ${isDebt ? '#991b1b' : '#166534'}; font-size: 12px; font-weight: 700; padding: 2px 10px; rounded: 6px; margin-top: 6px;">
                             ${isDebt ? 'سند دين (عليه)' : 'سند قبض / تسديد (له)'}
-                        </h2>
-                        <p style="font-size: 9px; color: #64748b; margin: 2px 0 0 0; direction: ltr;">
-                            الرقم: <span>${t.id}</span>
-                        </p>
+                        </div>
                     </div>
                     
-                    <div style="background-color: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #e2e8f0;">
+                    <div style="background-color: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
                         <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 11px;">
                             <div style="display: table-cell; text-align: right; color: #64748b;">التاريخ:</div>
                             <div style="display: table-cell; text-align: left; font-weight: 700; color: #1e293b;">${t.date}</div>
@@ -604,15 +696,16 @@
                         ` : ''}
                     </div>
 
-                    <div style="display: table; width: 100%; border-top: 1px solid #cbd5e1; padding-top: 10px; margin-top: 6px; font-size: 10px; color: #64748b;">
+                    <div style="display: table; width: 100%; border-top: 1px solid #cbd5e1; padding-top: 10px; font-size: 10px; color: #64748b;">
                         <div style="display: table-cell; text-align: right;">توقيع المستلم: ....................</div>
                         <div style="display: table-cell; text-align: left;">توقيع الزبون: ....................</div>
                     </div>
 
+                    ${storeSettings.footerNote ? `<div style="text-align: center; margin-top: 12px; font-size: 10px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 6px;">${storeSettings.footerNote}</div>` : ''}
+
                 </div>
             `;
 
-            currentDocumentHTML = html;
             document.getElementById('modalContent').innerHTML = html;
             document.getElementById('modalOverlay').classList.remove('hidden');
         }
@@ -621,40 +714,25 @@
             document.getElementById('modalOverlay').classList.add('hidden');
         }
 
-        // --- الدالة المضمونة 100% لتصوير المستند وسطه في صفحة PDF المطبوعة بدون أوراق بيضاء ---
-        function downloadPDF() {
-            if (!currentDocumentHTML) return;
+        // --- تنزيل الوصل كصورة JPG عالية الدقة والوضوح ---
+        function downloadJPG() {
+            const target = document.getElementById('exportTarget');
+            if (!target) return;
 
-            // إنشاء حاوية معزولة بحجم A4 مجهزة للتوسيط العمودي والأفقي
-            const printContainer = document.createElement('div');
-            printContainer.style.width = '794px';  // عرض أبعاد A4 بكسل معيارياً
-            printContainer.style.height = '1123px'; // ارتفاع أبعاد A4 بكسل معيارياً
-            printContainer.style.display = 'flex';
-            printContainer.style.alignItems = 'center';
-            printContainer.style.justifyContent = 'center';
-            printContainer.style.backgroundColor = '#ffffff';
-            printContainer.style.position = 'fixed';
-            printContainer.style.left = '-9999px';
-            printContainer.style.top = '0';
-
-            printContainer.innerHTML = currentDocumentHTML;
-            document.body.appendChild(printContainer);
-
-            const opt = {
-                margin:       0,
-                filename:     'سند_' + Date.now() + '.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, windowWidth: 794 },
-                jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(printContainer).save().then(() => {
-                document.body.removeChild(printContainer);
+            html2canvas(target, {
+                scale: 3, // دقة فائقة الوضوح
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'وصل_' + Date.now() + '.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.95);
+                link.click();
             });
         }
 
         function exportBackup() {
-            const data = { customers, transactions, exportedAt: new Date().toISOString() };
+            const data = { customers, transactions, storeSettings, exportedAt: new Date().toISOString() };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -674,6 +752,10 @@
                     if (imported.customers && imported.transactions) {
                         customers = imported.customers;
                         transactions = imported.transactions;
+                        if (imported.storeSettings) {
+                            storeSettings = imported.storeSettings;
+                            localStorage.setItem('iqd_store_settings', JSON.stringify(storeSettings));
+                        }
                         saveData();
                         alert('تمت استعادة البيانات بنجاح!');
                     }
@@ -692,6 +774,7 @@
             document.getElementById('installBanner').classList.remove('hidden');
         }
 
+        applyStoreSettings();
         updateUI();
     </script>
 </body>
