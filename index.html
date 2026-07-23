@@ -26,9 +26,143 @@
     
     <style>
         body { font-family: 'Cairo', sans-serif; }
+
+        /* --- أنيميشن شاشة الإقلاع (Splash Screen) --- */
+        #splashScreen {
+            position: fixed;
+            inset: 0;
+            background-color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        #splashScreen.hidden-splash {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* كود الأنيميشن المزود من المستخدم */
+        @keyframes dropAndShift {
+          0% { transform: translate(0px, 15px); }
+          16.67% { transform: translate(80px, 13px); }
+          33.34% { transform: translate(40px, 10px); }
+          50.01% { transform: translate(40px, -30px); }
+          66.68% { transform: translate(40px, 55px); }
+          83.35% { transform: translate(40px, 10px); }
+          100% { transform: translate(0px, 15px); }
+        }
+
+        @keyframes bubbleGlint {
+          0% { top: 3px; left: 4px; opacity: 0; }
+          8.335% { top: 6px; left: 6px; opacity: 0.5; }
+          16.67% { top: 3px; left: 4px; opacity: 0; }
+          33.34% { top: 3px; left: 4px; opacity: 0.5; }
+          50.01% { top: 3px; left: 4px; opacity: 0; }
+          58.345% { top: 6px; left: 6px; opacity: 0.5; }
+          66.68% { top: 3px; left: 4px; opacity: 0; }
+          83.35% { top: 6px; left: 6px; opacity: 0.5; }
+          100% { top: 3px; left: 4px; opacity: 0; }
+        }
+
+        .loader-container {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .Strich1 {
+          position: absolute;
+          width: 130px;
+          height: 50px;
+          background: #1e293b;
+          border-radius: 25px;
+          transform: rotate(45deg);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+          z-index: 0;
+        }
+
+        .Strich2 {
+          position: absolute;
+          width: 130px;
+          height: 50px;
+          background: #1e293b;
+          border-radius: 25px;
+          transform: rotate(-90deg);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+          z-index: 0;
+        }
+
+        .bubble {
+          position: absolute;
+          top: 0;
+          left: 15px;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: radial-gradient(circle at 30% 30%, #ffb3c1, #e64980, #ff8787);
+          animation: dropAndShift 5s ease-in-out infinite;
+          z-index: 1;
+        }
+
+        .bubble1 {
+          position: absolute;
+          top: 0;
+          width: 20px;
+          height: 20px;
+          background: radial-gradient(circle at 30% 30%, #edb3ff, #ac49e6, #fb87ff);
+          border-radius: 50%;
+          left: 8px;
+          animation: dropAndShift 6s ease-in-out infinite;
+          z-index: 2;
+        }
+
+        .bubble2 {
+          position: absolute;
+          top: 0;
+          width: 20px;
+          height: 20px;
+          background: radial-gradient(circle at 30% 30%, #b3d8ff, #4963e6, #87a7ff);
+          border-radius: 50%;
+          left: 12px;
+          animation: dropAndShift 4s ease-in-out infinite;
+          z-index: 3;
+        }
+
+        .bubble3 {
+          position: absolute;
+          top: 0;
+          width: 20px;
+          height: 20px;
+          background: radial-gradient(circle at 30% 30%, #b3ffbc, #35a32f, #75ba61);
+          border-radius: 50%;
+          left: 10px;
+          animation: dropAndShift 7s ease-in-out infinite;
+          z-index: 4;
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 pb-12">
+
+    <!-- ===== شاشة الإقلاع (Splash Screen) ===== -->
+    <div id="splashScreen">
+        <div class="loader-container mb-6">
+            <div class="Strich1"></div>
+            <div class="Strich2"></div>
+            <div class="bubble"></div>
+            <div class="bubble1"></div>
+            <div class="bubble2"></div>
+            <div class="bubble3"></div>
+        </div>
+        <h2 class="text-white font-extrabold text-xl tracking-wide mb-1" id="splashStoreTitle">دفتر الديون الرقمي</h2>
+        <p class="text-indigo-300 text-xs font-semibold">جاري تحميل البيانات...</p>
+    </div>
 
     <!-- شريط تثبيت التطبيق على الجوال -->
     <div id="installBanner" class="hidden bg-indigo-900 text-white p-3 px-4 flex justify-between items-center text-sm shadow-md sticky top-0 z-50">
@@ -304,6 +438,16 @@
 
     <!-- JavaScript Logic -->
     <script>
+        // مؤقت شاشة الإقلاع (3 ثواني)
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splashScreen');
+                if (splash) {
+                    splash.classList.add('hidden-splash');
+                }
+            }, 3000); // 3000ms = 3 ثواني
+        });
+
         let customers = JSON.parse(localStorage.getItem('iqd_customers')) || [];
         let transactions = JSON.parse(localStorage.getItem('iqd_transactions')) || [];
         let storeSettings = JSON.parse(localStorage.getItem('iqd_store_settings')) || {
@@ -359,6 +503,7 @@
         function applyStoreSettings() {
             if (storeSettings.name) {
                 document.getElementById('headerStoreTitle').innerText = storeSettings.name;
+                document.getElementById('splashStoreTitle').innerText = storeSettings.name;
                 document.getElementById('settingStoreName').value = storeSettings.name;
             }
             if (storeSettings.phone) document.getElementById('settingStorePhone').value = storeSettings.phone;
@@ -654,7 +799,7 @@
                         <img src="logo.png" style="width: 48px; height: 48px; margin: 0 auto 4px auto; display: block;">
                         <h2 style="font-size: 16px; font-weight: 800; color: #3730a3; margin: 0;">${storeSettings.name || 'دفتر الديون'}</h2>
                         ${storeSettings.phone || storeSettings.address ? `<p style="font-size: 10px; color: #475569; margin: 2px 0;">${storeSettings.phone} ${storeSettings.address ? ' | ' + storeSettings.address : ''}</p>` : ''}
-                        <div style="display: inline-block; background-color: ${isDebt ? '#fef2f2' : '#f0fdf4'}; color: ${isDebt ? '#991b1b' : '#166534'}; font-size: 12px; font-weight: 700; padding: 2px 10px; rounded: 6px; margin-top: 6px;">
+                        <div style="display: inline-block; background-color: ${isDebt ? '#fef2f2' : '#f0fdf4'}; color: ${isDebt ? '#991b1b' : '#166534'}; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 6px; margin-top: 6px;">
                             ${isDebt ? 'سند دين (عليه)' : 'سند قبض / تسديد (له)'}
                         </div>
                     </div>
