@@ -27,13 +27,6 @@
     
     <style>
         body { font-family: 'Cairo', sans-serif; }
-        
-        @media print {
-            body * { visibility: hidden; }
-            #printableArea, #printableArea * { visibility: visible; }
-            #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
-            .no-print { display: none !important; }
-        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 pb-12">
@@ -59,7 +52,7 @@
             </div>
 
             <!-- أزرار النسخ الاحتياطي -->
-            <div class="flex items-center gap-2 flex-wrap text-sm no-print">
+            <div class="flex items-center gap-2 flex-wrap text-sm">
                 <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl border border-indigo-500 transition flex items-center gap-1 shadow-sm">
                     <i class="fa-solid fa-download"></i> تصدير نسخ احتياطي
                 </button>
@@ -136,13 +129,15 @@
                     <i class="fa-solid fa-file-circle-plus text-indigo-600"></i> تسجيل دين أو تسديد
                 </h2>
                 <form id="debtForm" onsubmit="addTransaction(event)" class="space-y-3">
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-semibold mb-1">اختر الزبون *</label>
-                            <select id="debtCustomer" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                                <option value="">اختر زبون...</option>
-                            </select>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <!-- البحث الذكي لاختيار الزبون -->
+                        <div class="relative">
+                            <label class="block text-xs font-semibold mb-1">اختر الزبون (بحث ذكي) *</label>
+                            <input type="hidden" id="selectedCustomerId" required>
+                            <input type="text" id="customerSearchInput" oninput="filterCustomerDropdown()" onfocus="showCustomerDropdown()" placeholder="ابحث باسم الزبون..." class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <div id="customerDropdown" class="absolute z-30 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto hidden mt-1"></div>
                         </div>
+
                         <div>
                             <label class="block text-xs font-semibold mb-1">نوع المعاملة *</label>
                             <select id="transType" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
@@ -155,7 +150,8 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-xs font-semibold mb-1">المبلغ (بالدينار العراقي) *</label>
-                            <input type="number" id="debtAmount" min="250" step="250" required placeholder="مثال: 25000" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <!-- قبول أي رقم إيجابي بدون تحديد أدنى أو خطوات -->
+                            <input type="number" id="debtAmount" min="1" step="any" required placeholder="أدخل أي مبلغ..." class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold mb-1">طريقة السداد / الدفع</label>
@@ -244,16 +240,16 @@
 
     <!-- Modal كشف الحساب / الوصل -->
     <div id="modalOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="p-4 bg-indigo-700 text-white flex justify-between items-center no-print">
-                <h3 class="font-bold text-lg" id="modalTitle">كشف حساب</h3>
+        <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 bg-indigo-700 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg" id="modalTitle">معاينة المستند</h3>
                 <button onclick="closeModal()" class="text-indigo-200 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <div id="modalContent" class="p-6 overflow-y-auto space-y-4 bg-slate-100 text-slate-800"></div>
+            <div id="modalContent" class="p-6 overflow-y-auto space-y-4 bg-slate-100 text-slate-800 flex justify-center"></div>
 
-            <div class="p-4 bg-slate-50 border-t flex justify-end gap-2 no-print">
-                <button onclick="downloadModalPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+            <div class="p-4 bg-slate-50 border-t flex justify-end gap-2">
+                <button onclick="downloadPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
                     <i class="fa-solid fa-file-pdf"></i> تنزيل PDF
                 </button>
                 <button onclick="closeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold">إغلاق</button>
@@ -265,6 +261,7 @@
     <script>
         let customers = JSON.parse(localStorage.getItem('iqd_customers')) || [];
         let transactions = JSON.parse(localStorage.getItem('iqd_transactions')) || [];
+        let currentDocumentHTML = ""; // تخزين هتميل السند للطباعة
 
         document.getElementById('transDate').valueAsDate = new Date();
 
@@ -278,6 +275,47 @@
             return new Intl.NumberFormat('ar-IQ').format(amount) + ' د.ع';
         }
 
+        // --- نظام البحث الذكي للزبائن ---
+        function showCustomerDropdown() {
+            filterCustomerDropdown();
+            document.getElementById('customerDropdown').classList.remove('hidden');
+        }
+
+        function filterCustomerDropdown() {
+            const input = document.getElementById('customerSearchInput').value.toLowerCase();
+            const dropdown = document.getElementById('customerDropdown');
+            dropdown.innerHTML = '';
+
+            const filtered = customers.filter(c => c.name.toLowerCase().includes(input));
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div class="p-2 text-xs text-slate-400 text-center">لا يوجد زبون بهذا الاسم</div>';
+            } else {
+                filtered.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'p-2 text-sm hover:bg-indigo-50 cursor-pointer border-b border-slate-100 flex justify-between items-center';
+                    item.innerHTML = `<span class="font-semibold">${c.name}</span> <span class="text-xs text-slate-400">${c.phone}</span>`;
+                    item.onclick = () => selectCustomer(c);
+                    dropdown.appendChild(item);
+                });
+            }
+        }
+
+        function selectCustomer(cust) {
+            document.getElementById('selectedCustomerId').value = cust.id;
+            document.getElementById('customerSearchInput').value = cust.name;
+            document.getElementById('customerDropdown').classList.add('hidden');
+        }
+
+        document.addEventListener('click', function(e) {
+            const input = document.getElementById('customerSearchInput');
+            const dropdown = document.getElementById('customerDropdown');
+            if (input && dropdown && !input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // --- إضافة زبون ومعاملة ---
         function addCustomer(e) {
             e.preventDefault();
             const name = document.getElementById('custName').value.trim();
@@ -298,7 +336,7 @@
 
         function addTransaction(e) {
             e.preventDefault();
-            const custId = document.getElementById('debtCustomer').value;
+            const custId = document.getElementById('selectedCustomerId').value;
             const type = document.getElementById('transType').value;
             const amount = parseFloat(document.getElementById('debtAmount').value);
             const method = document.getElementById('paymentMethod').value;
@@ -306,7 +344,15 @@
             const dueDate = document.getElementById('dueDate').value;
             const notes = document.getElementById('debtNotes').value.trim();
 
-            if (!custId || !amount || amount <= 0) return;
+            if (!custId) {
+                alert('الرجاء اختيار زبون من القائمة المنسدلة للبحث الذكي!');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                alert('الرجاء إدخال مبلغ صحيح!');
+                return;
+            }
 
             transactions.push({
                 id: 'trans_' + Date.now(),
@@ -321,6 +367,8 @@
 
             saveData();
             document.getElementById('debtForm').reset();
+            document.getElementById('selectedCustomerId').value = '';
+            document.getElementById('customerSearchInput').value = '';
             document.getElementById('transDate').valueAsDate = new Date();
             alert('تم تسجيل المعاملة بنجاح!');
         }
@@ -336,12 +384,6 @@
         }
 
         function updateUI() {
-            const select = document.getElementById('debtCustomer');
-            select.innerHTML = '<option value="">اختر زبون...</option>';
-            customers.forEach(c => {
-                select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-            });
-
             let grandTotalDebt = 0, grandTotalPaid = 0;
             transactions.forEach(t => {
                 if (t.type === 'debt') grandTotalDebt += t.amount;
@@ -434,6 +476,7 @@
             }
         }
 
+        // --- عرض كشف الحساب والوصل مع التنسيق المحاذي للمنتصف ---
         function showStatement(custId) {
             const cust = customers.find(c => c.id === custId);
             if (!cust) return;
@@ -444,62 +487,61 @@
             document.getElementById('modalTitle').innerText = 'كشف حساب التفصيلي';
             
             let html = `
-                <div id="pdfWrapper" style="background-color: #f1f5f9; padding: 30px 15px; width: 100%; box-sizing: border-box; display: flex; justify-content: center;">
-                    <div id="printableArea" style="width: 520px; background: #ffffff; padding: 25px; border-radius: 16px; border: 1px solid #cbd5e1; font-family: 'Cairo', sans-serif; direction: rtl; box-sizing: border-box; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
-                        
-                        <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 12px; margin-bottom: 18px;">
-                            <img src="logo.png" style="width: 60px; height: 60px; margin: 0 auto 8px auto; display: block;">
-                            <h2 style="font-size: 20px; font-weight: 800; color: #3730a3; margin: 0;">كشف حساب زبون</h2>
-                            <p style="font-size: 11px; color: #64748b; margin-top: 2px;">تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</p>
-                        </div>
+                <div style="width: 480px; background: #ffffff; padding: 25px; border-radius: 12px; border: 1px solid #cbd5e1; font-family: 'Cairo', sans-serif; direction: rtl; box-sizing: border-box;">
+                    
+                    <div style="text-align: center; border-bottom: 2px solid #4338ca; padding-bottom: 10px; margin-bottom: 15px;">
+                        <img src="logo.png" style="width: 55px; height: 55px; margin: 0 auto 6px auto; display: block;">
+                        <h2 style="font-size: 18px; font-weight: 800; color: #3730a3; margin: 0;">كشف حساب زبون</h2>
+                        <p style="font-size: 10px; color: #64748b; margin-top: 2px;">تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</p>
+                    </div>
 
-                        <div style="display: table; width: 100%; background: #f8fafc; padding: 12px; border-radius: 10px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
-                            <div style="display: table-cell; vertical-align: middle; text-align: right;">
-                                <p style="margin: 2px 0; font-size: 13px;"><strong>اسم الزبون:</strong> ${cust.name}</p>
-                                <p style="margin: 2px 0; font-size: 13px;"><strong>رقم الهاتف:</strong> ${cust.phone}</p>
-                            </div>
-                            <div style="display: table-cell; vertical-align: middle; text-align: left;">
-                                <p style="margin: 0; font-size: 11px; color: #64748b;">الرصيد المتبقي</p>
-                                <p style="margin: 0; font-size: 18px; font-weight: 800; color: ${balance > 0 ? '#dc2626' : '#16a34a'};">${formatIQD(balance)}</p>
-                            </div>
+                    <div style="display: table; width: 100%; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+                        <div style="display: table-cell; vertical-align: middle; text-align: right;">
+                            <p style="margin: 2px 0; font-size: 12px;"><strong>اسم الزبون:</strong> ${cust.name}</p>
+                            <p style="margin: 2px 0; font-size: 12px;"><strong>رقم الهاتف:</strong> ${cust.phone}</p>
                         </div>
+                        <div style="display: table-cell; vertical-align: middle; text-align: left;">
+                            <p style="margin: 0; font-size: 10px; color: #64748b;">الرصيد المتبقي</p>
+                            <p style="margin: 0; font-size: 16px; font-weight: 800; color: ${balance > 0 ? '#dc2626' : '#16a34a'};">${formatIQD(balance)}</p>
+                        </div>
+                    </div>
 
-                        <table style="width: 100%; border-collapse: collapse; text-align: right; margin-bottom: 16px; font-size: 11px;">
-                            <thead>
-                                <tr style="background: #e0e7ff; color: #3730a3;">
-                                    <th style="padding: 7px; border: 1px solid #c7d2fe;">التاريخ</th>
-                                    <th style="padding: 7px; border: 1px solid #c7d2fe;">التفاصيل</th>
-                                    <th style="padding: 7px; border: 1px solid #c7d2fe;">المبلغ</th>
-                                    <th style="padding: 7px; border: 1px solid #c7d2fe;">النوع</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                    <table style="width: 100%; border-collapse: collapse; text-align: right; margin-bottom: 15px; font-size: 11px;">
+                        <thead>
+                            <tr style="background: #e0e7ff; color: #3730a3;">
+                                <th style="padding: 6px; border: 1px solid #c7d2fe;">التاريخ</th>
+                                <th style="padding: 6px; border: 1px solid #c7d2fe;">التفاصيل</th>
+                                <th style="padding: 6px; border: 1px solid #c7d2fe;">المبلغ</th>
+                                <th style="padding: 6px; border: 1px solid #c7d2fe;">النوع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
 
             custTrans.forEach(t => {
                 const isDebt = t.type === 'debt';
                 html += `
                     <tr style="border-bottom: 1px solid #e2e8f0;">
-                        <td style="padding: 7px; border: 1px solid #f1f5f9;">${t.date}</td>
-                        <td style="padding: 7px; border: 1px solid #f1f5f9;">${t.notes}</td>
-                        <td style="padding: 7px; border: 1px solid #f1f5f9; font-weight: 700; color: ${isDebt ? '#dc2626' : '#16a34a'};">${formatIQD(t.amount)}</td>
-                        <td style="padding: 7px; border: 1px solid #f1f5f9;">${isDebt ? 'دين (عليه)' : 'تسديد (له)'}</td>
+                        <td style="padding: 6px; border: 1px solid #f1f5f9;">${t.date}</td>
+                        <td style="padding: 6px; border: 1px solid #f1f5f9;">${t.notes}</td>
+                        <td style="padding: 6px; border: 1px solid #f1f5f9; font-weight: 700; color: ${isDebt ? '#dc2626' : '#16a34a'};">${formatIQD(t.amount)}</td>
+                        <td style="padding: 6px; border: 1px solid #f1f5f9;">${isDebt ? 'دين (عليه)' : 'تسديد (له)'}</td>
                     </tr>
                 `;
             });
 
             html += `
-                            </tbody>
-                        </table>
+                        </tbody>
+                    </table>
 
-                        <div style="display: table; width: 100%; border-top: 2px dashed #cbd5e1; padding-top: 10px; font-size: 11px; color: #475569;">
-                            <div style="display: table-cell; text-align: right;"><strong>مجموع الديون:</strong> ${formatIQD(debtSum)}</div>
-                            <div style="display: table-cell; text-align: left;"><strong>مجموع التسديدات:</strong> ${formatIQD(paidSum)}</div>
-                        </div>
+                    <div style="display: table; width: 100%; border-top: 2px dashed #cbd5e1; padding-top: 8px; font-size: 10px; color: #475569;">
+                        <div style="display: table-cell; text-align: right;"><strong>مجموع الديون:</strong> ${formatIQD(debtSum)}</div>
+                        <div style="display: table-cell; text-align: left;"><strong>مجموع التسديدات:</strong> ${formatIQD(paidSum)}</div>
                     </div>
                 </div>
             `;
 
+            currentDocumentHTML = html;
             document.getElementById('modalContent').innerHTML = html;
             document.getElementById('modalOverlay').classList.remove('hidden');
         }
@@ -513,65 +555,64 @@
             const isDebt = t.type === 'debt';
 
             const html = `
-                <div id="pdfWrapper" style="background-color: #f1f5f9; padding: 40px 15px; width: 100%; box-sizing: border-box; display: flex; justify-content: center;">
-                    <div id="printableArea" style="width: 450px; background: #ffffff; padding: 25px; border-radius: 16px; border: 2px solid #3730a3; font-family: 'Cairo', sans-serif; direction: rtl; box-sizing: border-box; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
-                        
-                        <div style="text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 12px; margin-bottom: 16px;">
-                            <img src="logo.png" style="width: 55px; height: 55px; margin: 0 auto 6px auto; display: block;">
-                            <h2 style="font-size: 18px; font-weight: 800; color: #3730a3; margin: 0;">
-                                ${isDebt ? 'سند دين (عليه)' : 'سند قبض / تسديد (له)'}
-                            </h2>
-                            <p style="font-size: 10px; color: #64748b; margin: 2px 0 0 0; direction: ltr;">
-                                الرقم: <span>${t.id}</span>
-                            </p>
-                        </div>
-                        
-                        <div style="background-color: #f8fafc; padding: 14px; border-radius: 10px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
-                            <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 12px;">
-                                <div style="display: table-cell; text-align: right; color: #64748b;">التاريخ:</div>
-                                <div style="display: table-cell; text-align: left; font-weight: 700; color: #1e293b;">${t.date}</div>
-                            </div>
-                            
-                            <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 12px;">
-                                <div style="display: table-cell; text-align: right; color: #64748b;">اسم الزبون:</div>
-                                <div style="display: table-cell; text-align: left; font-weight: 700; color: #1e293b;">${cust.name}</div>
-                            </div>
-
-                            <div style="display: table; width: 100%; margin-bottom: 6px; background: #ffffff; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
-                                <div style="display: table-cell; vertical-align: middle; text-align: right; color: #64748b; font-size: 12px;">المبلغ:</div>
-                                <div style="display: table-cell; vertical-align: middle; text-align: left; font-size: 16px; font-weight: 800; color: ${isDebt ? '#dc2626' : '#16a34a'};">
-                                    ${formatIQD(t.amount)}
-                                </div>
-                            </div>
-
-                            <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 12px;">
-                                <div style="display: table-cell; text-align: right; color: #64748b;">طريقة السداد:</div>
-                                <div style="display: table-cell; text-align: left; font-weight: 600; color: #334155;">${t.method || 'نقداً'}</div>
-                            </div>
-
-                            ${t.dueDate ? `
-                            <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 12px;">
-                                <div style="display: table-cell; text-align: right; color: #d97706; font-weight: 600;">تاريخ التذكير:</div>
-                                <div style="display: table-cell; text-align: left; font-weight: 700; color: #b45309;">${t.dueDate}</div>
-                            </div>
-                            ` : ''}
-
-                            ${t.notes ? `
-                            <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 6px; font-size: 11px; color: #475569; text-align: right;">
-                                <strong>ملاحظات:</strong> ${t.notes}
-                            </div>
-                            ` : ''}
-                        </div>
-
-                        <div style="display: table; width: 100%; border-top: 1px solid #cbd5e1; padding-top: 14px; margin-top: 8px; font-size: 11px; color: #64748b;">
-                            <div style="display: table-cell; text-align: right;">توقيع المستلم: ....................</div>
-                            <div style="display: table-cell; text-align: left;">توقيع الزبون: ....................</div>
-                        </div>
-
+                <div style="width: 420px; background: #ffffff; padding: 22px; border-radius: 12px; border: 2px solid #3730a3; font-family: 'Cairo', sans-serif; direction: rtl; box-sizing: border-box;">
+                    
+                    <div style="text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 10px; margin-bottom: 14px;">
+                        <img src="logo.png" style="width: 50px; height: 50px; margin: 0 auto 6px auto; display: block;">
+                        <h2 style="font-size: 16px; font-weight: 800; color: #3730a3; margin: 0;">
+                            ${isDebt ? 'سند دين (عليه)' : 'سند قبض / تسديد (له)'}
+                        </h2>
+                        <p style="font-size: 9px; color: #64748b; margin: 2px 0 0 0; direction: ltr;">
+                            الرقم: <span>${t.id}</span>
+                        </p>
                     </div>
+                    
+                    <div style="background-color: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #e2e8f0;">
+                        <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 11px;">
+                            <div style="display: table-cell; text-align: right; color: #64748b;">التاريخ:</div>
+                            <div style="display: table-cell; text-align: left; font-weight: 700; color: #1e293b;">${t.date}</div>
+                        </div>
+                        
+                        <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 11px;">
+                            <div style="display: table-cell; text-align: right; color: #64748b;">اسم الزبون:</div>
+                            <div style="display: table-cell; text-align: left; font-weight: 700; color: #1e293b;">${cust.name}</div>
+                        </div>
+
+                        <div style="display: table; width: 100%; margin-bottom: 6px; background: #ffffff; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                            <div style="display: table-cell; vertical-align: middle; text-align: right; color: #64748b; font-size: 11px;">المبلغ:</div>
+                            <div style="display: table-cell; vertical-align: middle; text-align: left; font-size: 15px; font-weight: 800; color: ${isDebt ? '#dc2626' : '#16a34a'};">
+                                ${formatIQD(t.amount)}
+                            </div>
+                        </div>
+
+                        <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 11px;">
+                            <div style="display: table-cell; text-align: right; color: #64748b;">طريقة السداد:</div>
+                            <div style="display: table-cell; text-align: left; font-weight: 600; color: #334155;">${t.method || 'نقداً'}</div>
+                        </div>
+
+                        ${t.dueDate ? `
+                        <div style="display: table; width: 100%; margin-bottom: 6px; font-size: 11px;">
+                            <div style="display: table-cell; text-align: right; color: #d97706; font-weight: 600;">تاريخ التذكير:</div>
+                            <div style="display: table-cell; text-align: left; font-weight: 700; color: #b45309;">${t.dueDate}</div>
+                        </div>
+                        ` : ''}
+
+                        ${t.notes ? `
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 6px; font-size: 10px; color: #475569; text-align: right;">
+                            <strong>ملاحظات:</strong> ${t.notes}
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="display: table; width: 100%; border-top: 1px solid #cbd5e1; padding-top: 10px; margin-top: 6px; font-size: 10px; color: #64748b;">
+                        <div style="display: table-cell; text-align: right;">توقيع المستلم: ....................</div>
+                        <div style="display: table-cell; text-align: left;">توقيع الزبون: ....................</div>
+                    </div>
+
                 </div>
             `;
 
+            currentDocumentHTML = html;
             document.getElementById('modalContent').innerHTML = html;
             document.getElementById('modalOverlay').classList.remove('hidden');
         }
@@ -580,20 +621,36 @@
             document.getElementById('modalOverlay').classList.add('hidden');
         }
 
-        function downloadModalPDF() {
-            const element = document.getElementById('pdfWrapper');
-            if (!element) return;
+        // --- الدالة المضمونة 100% لتصوير المستند وسطه في صفحة PDF المطبوعة بدون أوراق بيضاء ---
+        function downloadPDF() {
+            if (!currentDocumentHTML) return;
 
-            // إعدادات إنشاء ملف PDF بتنسيق متوسط ومنتصف الورقة
+            // إنشاء حاوية معزولة بحجم A4 مجهزة للتوسيط العمودي والأفقي
+            const printContainer = document.createElement('div');
+            printContainer.style.width = '794px';  // عرض أبعاد A4 بكسل معيارياً
+            printContainer.style.height = '1123px'; // ارتفاع أبعاد A4 بكسل معيارياً
+            printContainer.style.display = 'flex';
+            printContainer.style.alignItems = 'center';
+            printContainer.style.justifyContent = 'center';
+            printContainer.style.backgroundColor = '#ffffff';
+            printContainer.style.position = 'fixed';
+            printContainer.style.left = '-9999px';
+            printContainer.style.top = '0';
+
+            printContainer.innerHTML = currentDocumentHTML;
+            document.body.appendChild(printContainer);
+
             const opt = {
-                margin:       [10, 10, 10, 10],
+                margin:       0,
                 filename:     'سند_' + Date.now() + '.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas:  { scale: 2, useCORS: true, windowWidth: 794 },
+                jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' }
             };
 
-            html2pdf().set(opt).from(element).save();
+            html2pdf().set(opt).from(printContainer).save().then(() => {
+                document.body.removeChild(printContainer);
+            });
         }
 
         function exportBackup() {
