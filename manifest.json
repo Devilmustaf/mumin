@@ -1,0 +1,17 @@
+{
+  "short_name": "دفتر الديون",
+  "name": "تطبيق دفتر الديون الرقمي",
+  "icons": [
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#4338ca",
+  "theme_color": "#4338ca",
+  "display": "standalone",
+  "orientation": "portrait"
+}
