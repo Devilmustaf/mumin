@@ -25,11 +25,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install Capacitor Core & Android
+      - name: Install Capacitor CLI & Core
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Init Capacitor Config
+      - name: Initialize Capacitor Config
         run: |
           npx cap init Mumin com.devilmustaf.mumin --web-dir . || true
 
@@ -37,17 +37,17 @@ jobs:
         run: |
           npx cap add android || true
 
-      - name: Sync Capacitor
+      - name: Sync Capacitor (Generate Gradle Settings)
         run: |
-          npx cap copy android
+          npx cap sync android
 
-      - name: Build APK with Gradle
+      - name: Build APK via Gradle
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Mumin-App-APK
