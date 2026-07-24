@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK (with Icon)
 
 on:
   push:
@@ -25,9 +25,9 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install Capacitor
+      - name: Install Capacitor & Assets Tools
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
 
       - name: Prepare Web Directory (www)
         run: |
@@ -41,6 +41,10 @@ jobs:
       - name: Add Android Platform
         run: |
           npx cap add android || true
+
+      - name: Generate App Icons
+        run: |
+          npx capacitor-assets generate --android --icon logo.png
 
       - name: Sync Capacitor
         run: |
