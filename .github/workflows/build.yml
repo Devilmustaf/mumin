@@ -25,19 +25,24 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install Capacitor CLI & Core
+      - name: Install Capacitor
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
+      - name: Prepare Web Directory (www)
+        run: |
+          mkdir -p www
+          cp -r index.html logo.png manifest.json www/ 2>/dev/null || true
+
       - name: Initialize Capacitor Config
         run: |
-          npx cap init Mumin com.devilmustaf.mumin --web-dir . || true
+          npx cap init Mumin com.devilmustaf.mumin --web-dir www || true
 
       - name: Add Android Platform
         run: |
           npx cap add android || true
 
-      - name: Sync Capacitor (Generate Gradle Settings)
+      - name: Sync Capacitor
         run: |
           npx cap sync android
 
