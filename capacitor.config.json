@@ -1,0 +1,6 @@
+{
+  "appId": "com.devilmustaf.mumin",
+  "appName": "Mumin",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
