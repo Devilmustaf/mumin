@@ -42,9 +42,11 @@ jobs:
         run: |
           npx cap add android || true
 
-      - name: Generate App Icons
+      - name: Prepare Assets Folder & Generate Icons
         run: |
-          npx capacitor-assets generate --android --icon logo.png
+          mkdir -p assets
+          cp logo.png assets/icon.png
+          npx capacitor-assets generate --android
 
       - name: Sync Capacitor
         run: |
